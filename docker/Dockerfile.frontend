@@ -1,0 +1,25 @@
+FROM oven/bun:1
+
+WORKDIR /usr/src/app
+
+COPY ./package.json ./bun.lock ./
+COPY ./packages ./packages
+COPY ./apps/web ./apps/web
+
+RUN bun install
+
+# Generate contract.json / contract.d.ts (needs no database)
+RUN bun run db:generate
+
+# The home page is generated statically, so the build queries the database.
+# Pass it from CI: docker build --build-arg DATABASE_URL=... (or use the secret below)
+ARG DATABASE_URL
+
+# Scoped to this one step only, so it is not set in the running container.
+RUN cd apps/web && DATABASE_URL="$DATABASE_URL" bun run build
+
+ENV NODE_ENV=production
+EXPOSE 3000
+
+# DATABASE_URL is passed at run time: docker run -e DATABASE_URL=...
+CMD ["bun", "run", "start:frontend"]

@@ -1,0 +1,18 @@
+FROM oven/bun:1
+
+WORKDIR /usr/src/app
+
+COPY ./package.json ./bun.lock ./
+COPY ./packages ./packages
+COPY ./apps/backend ./apps/backend
+
+RUN bun install
+
+# Generate contract.json / contract.d.ts (needs no database)
+RUN bun run db:generate
+
+ENV PORT=3001
+EXPOSE 3001
+
+# DATABASE_URL is passed at run time: docker run -e DATABASE_URL=...
+CMD ["bun", "run", "start:backend"]
